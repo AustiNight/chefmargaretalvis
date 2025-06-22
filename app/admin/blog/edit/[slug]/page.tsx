@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import BlogPostForm from '@/components/BlogPostForm';
-import { getBlogPost } from '@/lib/blog';  // Adjust import path as needed
+import { getBlogPost } from "@/app/actions/blog-posts"
 
 interface PageProps {
   params: Promise<{ slug: string }>;
