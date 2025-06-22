@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server"
 import { getContentBySlug, isBlogPost, saveBlogPost, deleteBlogPost } from "@/utils/content"
 
-export async function GET(request: Request, { params }: { params: { slug: string } }) {
-  const { slug } = params
+function extractSlug(url: string): string {
+  return new URL(url).pathname.split("/").pop() || ""
+}
 
-  // Get blog post by slug
+export async function GET(request: Request) {
+  const slug = extractSlug(request.url)
   const post = getContentBySlug(slug)
 
   if (!post || !isBlogPost(post)) {
@@ -14,23 +16,20 @@ export async function GET(request: Request, { params }: { params: { slug: string
   return NextResponse.json(post)
 }
 
-export async function PUT(request: Request, { params }: { params: { slug: string } }) {
-  const { slug } = params
+export async function PUT(request: Request) {
+  const slug = extractSlug(request.url)
 
   try {
     const post = await request.json()
 
-    // Validate blog post data
     if (!post.title || !post.content) {
       return NextResponse.json({ error: "Invalid blog post data" }, { status: 400 })
     }
 
-    // Ensure slug matches
     if (post.slug !== slug) {
       return NextResponse.json({ error: "Slug mismatch" }, { status: 400 })
     }
 
-    // Save blog post
     const updatedPost = saveBlogPost(post)
 
     return NextResponse.json(updatedPost)
@@ -40,11 +39,10 @@ export async function PUT(request: Request, { params }: { params: { slug: string
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { slug: string } }) {
-  const { slug } = params
+export async function DELETE(request: Request) {
+  const slug = extractSlug(request.url)
 
   try {
-    // Delete blog post
     const success = deleteBlogPost(slug)
 
     if (!success) {
