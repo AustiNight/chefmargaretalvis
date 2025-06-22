@@ -8,10 +8,25 @@ import { Calendar, Clock, MapPin, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 import { ImageGallery } from "@/components/ImageGallery"
 import LocationMap from "@/components/LocationMap"
+import type { Metadata } from "next"
 
 interface EventPageProps {
   params: {
     id: string
+  }
+}
+
+export async function generateMetadata({ params }: EventPageProps): Promise<Metadata> {
+  const event = await getEventById(params.id)
+
+  if (!event) {
+    return {
+      title: "Event Not Found – Chef Margaret Alvis",
+    }
+  }
+
+  return {
+    title: `${event.title} – Chef Margaret Alvis`,
   }
 }
 
@@ -64,7 +79,6 @@ export default async function EventPage({ params }: EventPageProps) {
 
           <div className="prose max-w-none mb-8" dangerouslySetInnerHTML={{ __html: event.description }} />
 
-          {/* Location Map */}
           {(event.location || event.coordinates) && (
             <div className="mb-8">
               <h2 className="text-2xl font-semibold mb-4">Location</h2>
