@@ -1,16 +1,111 @@
-import type { Recipe, BlogPost, ContentType } from "@/types/recipe"
+// /utils/content.ts
+import type { BlogPost, Recipe } from "@/types";
 import { v4 as uuidv4 } from "uuid"
+// ... (other utility functions like getContentBySlug, saveBlogPost, saveRecipe, etc.) ...
 
-// Get all recipes
-export function getRecipes(): Recipe[] {
-  if (typeof window === "undefined") {
-    return []
+// Get all content (recipes and blog posts combined)
+export function getAllContent(): ContentType[] {
+  const recipes = getRecipes()
+  const blogPosts = getBlogPosts()
+
+  return [...recipes, ...blogPosts].sort(
+    (a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime(),
+  )
+}
+
+// Get content by slug
+export function getContentBySlug(slug: string): ContentType | undefined {
+  const recipes = getRecipes()
+  const blogPosts = getBlogPosts()
+
+  return [...recipes, ...blogPosts].find((item) => item.slug === slug)
+}
+
+// Save a new recipe
+export function saveRecipe(recipe: Omit<Recipe, "id">): Recipe {
+  const newRecipe: Recipe = {
+    ...recipe,
+    id: uuidv4(),
   }
 
-  const storedRecipes = localStorage.getItem("recipes")
-  if (!storedRecipes) {
-    // Return sample recipes for initial setup
-    const sampleRecipes: Recipe[] = [
+  const recipes = getRecipes()
+  recipes.push(newRecipe)
+  localStorage.setItem("recipes", JSON.stringify(recipes))
+
+  return newRecipe
+}
+
+// Save a new blog post
+export function saveBlogPost(post: Omit<BlogPost, "id">): BlogPost {
+  const newPost: BlogPost = {
+    ...post,
+    id: uuidv4(),
+  }
+
+  const posts = getBlogPosts()
+  posts.push(newPost)
+  localStorage.setItem("blogPosts", JSON.stringify(posts))
+
+  return newPost
+}
+
+// Update a recipe
+export function updateRecipe(recipe: Recipe): void {
+  const recipes = getRecipes()
+  const updatedRecipes = recipes.map((r) => (r.id === recipe.id ? recipe : r))
+  localStorage.setItem("recipes", JSON.stringify(updatedRecipes))
+}
+
+// Update a blog post
+export function updateBlogPost(post: BlogPost): void {
+  const posts = getBlogPosts()
+  const updatedPosts = posts.map((p) => (p.id === post.id ? post : p))
+  localStorage.setItem("blogPosts", JSON.stringify(updatedPosts))
+}
+
+// Delete a recipe
+export function deleteRecipe(id: string): void {
+  const recipes = getRecipes()
+  const updatedRecipes = recipes.filter((r) => r.id !== id)
+  localStorage.setItem("recipes", JSON.stringify(updatedRecipes))
+}
+
+// Delete a blog post
+export function deleteBlogPost(id: string): void {
+  const posts = getBlogPosts()
+  const updatedPosts = posts.filter((p) => p.id !== id)
+  localStorage.setItem("blogPosts", JSON.stringify(updatedPosts))
+}
+/**
+ * Type guard to check if a given object is a BlogPost.
+ * We assume BlogPost has at least 'title', 'slug', and 'excerpt' fields (excerpt is not present in Recipe).
+ */
+export function isBlogPost(data: any): data is BlogPost {
+  return data 
+    && typeof data === "object" 
+    && typeof data.title === "string" 
+    && typeof data.slug === "string" 
+    && typeof data.excerpt === "string";
+}
+
+/**
+ * Type guard to check if a given object is a Recipe.
+ * We assume Recipe has at least 'title', 'slug', and 'ingredients' fields (ingredients array not present in BlogPost).
+ */
+export function isRecipe(data: any): data is Recipe {
+  return data 
+    && typeof data === "object" 
+    && typeof data.title === "string" 
+    && typeof data.slug === "string" 
+    && Array.isArray(data.ingredients);
+}
+
+
+let fallbackRecipes: Recipe[] | null = null;
+export function getRecipes(): Recipe[] {
+  if (typeof window === "undefined") {
+    if (!fallbackRecipes) {
+      fallbackRecipes = [
       {
         id: "1",
         title: "Texas-Style Beef Brisket",
@@ -76,30 +171,20 @@ export function getRecipes(): Recipe[] {
         tags: ["dessert", "peach", "southern", "baking"],
         publishedDate: "2023-06-20T14:00:00Z",
         featured: false,
-      },
-    ]
-    localStorage.setItem("recipes", JSON.stringify(sampleRecipes))
-    return sampleRecipes
+      },  
+      ];
+    }
+    return fallbackRecipes;
   }
-
-  try {
-    return JSON.parse(storedRecipes) as Recipe[]
-  } catch (error) {
-    console.error("Error parsing recipes:", error)
-    return []
-  }
+  const stored = localStorage.getItem("recipes");
+  return stored ? JSON.parse(stored) : [];
 }
 
-// Get all blog posts
+let fallbackBlogPosts: BlogPost[] | null = null;
 export function getBlogPosts(): BlogPost[] {
   if (typeof window === "undefined") {
-    return []
-  }
-
-  const storedPosts = localStorage.getItem("blogPosts")
-  if (!storedPosts) {
-    // Return sample blog posts for initial setup
-    const samplePosts: BlogPost[] = [
+    if (!fallbackBlogPosts) {
+      fallbackBlogPosts = [
       {
         id: "1",
         title: "5 Essential Kitchen Tools Every Home Chef Needs",
@@ -190,90 +275,12 @@ With these simple techniques, you can transform your home cooking into restauran
         tags: ["plating", "food presentation", "culinary arts"],
         category: "Culinary Techniques",
         featured: false,
-      },
-    ]
-    localStorage.setItem("blogPosts", JSON.stringify(samplePosts))
-    return samplePosts
+      },  
+      ];
+    }
+    return fallbackBlogPosts;
   }
-
-  try {
-    return JSON.parse(storedPosts) as BlogPost[]
-  } catch (error) {
-    console.error("Error parsing blog posts:", error)
-    return []
-  }
+  const stored = localStorage.getItem("blogPosts");
+  return stored ? JSON.parse(stored) : [];
 }
 
-// Get all content (recipes and blog posts combined)
-export function getAllContent(): ContentType[] {
-  const recipes = getRecipes()
-  const blogPosts = getBlogPosts()
-
-  return [...recipes, ...blogPosts].sort(
-    (a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime(),
-  )
-}
-
-// Get content by slug
-export function getContentBySlug(slug: string): ContentType | undefined {
-  const recipes = getRecipes()
-  const blogPosts = getBlogPosts()
-
-  return [...recipes, ...blogPosts].find((item) => item.slug === slug)
-}
-
-// Save a new recipe
-export function saveRecipe(recipe: Omit<Recipe, "id">): Recipe {
-  const newRecipe: Recipe = {
-    ...recipe,
-    id: uuidv4(),
-  }
-
-  const recipes = getRecipes()
-  recipes.push(newRecipe)
-  localStorage.setItem("recipes", JSON.stringify(recipes))
-
-  return newRecipe
-}
-
-// Save a new blog post
-export function saveBlogPost(post: Omit<BlogPost, "id">): BlogPost {
-  const newPost: BlogPost = {
-    ...post,
-    id: uuidv4(),
-  }
-
-  const posts = getBlogPosts()
-  posts.push(newPost)
-  localStorage.setItem("blogPosts", JSON.stringify(posts))
-
-  return newPost
-}
-
-// Update a recipe
-export function updateRecipe(recipe: Recipe): void {
-  const recipes = getRecipes()
-  const updatedRecipes = recipes.map((r) => (r.id === recipe.id ? recipe : r))
-  localStorage.setItem("recipes", JSON.stringify(updatedRecipes))
-}
-
-// Update a blog post
-export function updateBlogPost(post: BlogPost): void {
-  const posts = getBlogPosts()
-  const updatedPosts = posts.map((p) => (p.id === post.id ? post : p))
-  localStorage.setItem("blogPosts", JSON.stringify(updatedPosts))
-}
-
-// Delete a recipe
-export function deleteRecipe(id: string): void {
-  const recipes = getRecipes()
-  const updatedRecipes = recipes.filter((r) => r.id !== id)
-  localStorage.setItem("recipes", JSON.stringify(updatedRecipes))
-}
-
-// Delete a blog post
-export function deleteBlogPost(id: string): void {
-  const posts = getBlogPosts()
-  const updatedPosts = posts.filter((p) => p.id !== id)
-  localStorage.setItem("blogPosts", JSON.stringify(updatedPosts))
-}
